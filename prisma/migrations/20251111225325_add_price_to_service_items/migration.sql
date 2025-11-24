@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ServiceItem" ADD COLUMN     "price" DOUBLE PRECISION NOT NULL DEFAULT 0;

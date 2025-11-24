@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"  
+  url      = env("DATABASE_URL")
+}
+
+// Branch model with manual IDs
+model Branch {
+  id        String   @id // Remove @default(cuid()) to manually set IDs
+  name      String   @unique // "Branch A", "Branch B"
+  code      String   @unique // "A", "B" - shorter identifier
+  location  String?  // Optional: physical location/address
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  users                User[]
+  washers              Washer[]
+  carWashes            CarWash[]
+  dailySummaries       DailySummary[]
+  companyDailySummaries CompanyDailySummary[]
+  
+  @@index([code])
+  @@index([name])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // Hashed password
+  name      String
+  role      String   @default("admin") // "admin", "manager", etc.
+  isActive  Boolean  @default(true)
+  
+  // Branch assignment
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@index([branchId])
+  @@index([role])
+}
+
+model Washer {
+  id            String        @id @default(cuid())
+  name          String
+  phone         String?
+  isActive      Boolean       @default(true)
+  
+  // Branch assignment
+  branchId      String
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  carWashes     CarWash[]
+  itemsWashed   WashedItem[]
+  dailySummaries DailySummary[]
+  
+  @@index([name])
+  @@index([branchId])
+}
+
+model ServiceItem {
+  id          String   @id @default(cuid())
+  name        String   @unique // "Body", "Seat", "Roof", "Floor", "Engine", "Radiator", "Condenser", "Boot"
+  description String?
+  price       Float    @default(0) // Price for this service item
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  washedItems WashedItem[]
+  
+  @@index([name])
+}
+
+model CarWash {
+  id              String       @id @default(cuid())
+  carNumber       String?      // Optional: License plate or car identifier
+  carModel        String?      // Optional: Car model
+  customerName    String?      // Optional: Customer name
+  customerPhone   String?      // Optional: Customer phone
+  
+  paymentMethod   String?      // "cash" or "transfer"
+  totalAmount     Float        @default(0) // Total amount for this car wash
+  
+  washDate        DateTime     @default(now()) // When the wash was done
+  
+  // Branch assignment
+  branchId        String
+  branch          Branch       @relation(fields: [branchId], references: [id])
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Relations
+  washedItems     WashedItem[] // Individual items washed for this car
+  washers         Washer[]     // Washers involved in this car wash
+  
+  @@index([washDate])
+  @@index([createdAt])
+  @@index([paymentMethod])
+  @@index([branchId])
+}
+
+// Individual items washed (junction table)
+model WashedItem {
+  id              String      @id @default(cuid())
+  
+  carWashId       String
+  carWash         CarWash     @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+  
+  washerId        String
+  washer          Washer      @relation(fields: [washerId], references: [id])
+  
+  serviceItemId   String
+  serviceItem     ServiceItem @relation(fields: [serviceItemId], references: [id])
+  price           Float?
+  createdAt       DateTime    @default(now())
+  
+  @@index([carWashId])
+  @@index([washerId])
+  @@index([serviceItemId])
+  @@index([createdAt])
+}
+
+// Daily Summary for each washer
+model DailySummary {
+  id                String   @id @default(cuid())
+  
+  washerId          String
+  washer            Washer   @relation(fields: [washerId], references: [id])
+  
+  // Branch assignment
+  branchId          String
+  branch            Branch   @relation(fields: [branchId], references: [id])
+  
+  date              DateTime @db.Date // Date for this summary
+  
+  totalCarsWashed   Int      @default(0)
+  totalItemsWashed  Int      @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([washerId, date, branchId]) // One summary per washer per day per branch
+  @@index([date])
+  @@index([washerId])
+  @@index([branchId])
+}
+
+// Company Daily Summary (per branch)
+model CompanyDailySummary {
+  id                  String   @id @default(cuid())
+  
+  // Branch assignment
+  branchId            String
+  branch              Branch   @relation(fields: [branchId], references: [id])
+  
+  date                DateTime @db.Date
+  
+  totalCarsWashed     Int      @default(0)
+  totalItemsWashed    Int      @default(0)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@unique([branchId, date]) // One summary per branch per day
+  @@index([date])
+  @@index([branchId])
+}
