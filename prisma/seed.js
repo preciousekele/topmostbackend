@@ -12,12 +12,12 @@ async function main() {
       id: 'branch_a',
       name: 'Branch A',
       code: 'A',
-      location: 'Main Street Location',
+      location: 'Back Carwash Location',
       isActive: true
     }
   });
 
-  console.log('✅ Branch A created:', branchA);
+  console.log(' Branch A created:', branchA);
 
   // Create Branch B with fixed ID
   const branchB = await prisma.branch.upsert({
@@ -27,15 +27,15 @@ async function main() {
       id: 'branch_b',
       name: 'Branch B',
       code: 'B',
-      location: 'Downtown Location',
+      location: 'Front Carwash Location',
       isActive: true
     }
   });
 
-  console.log('✅ Branch B created:', branchB);
+  console.log(' Branch B created:', branchB);
   
-  console.log('\n✨ Seed completed successfully!');
-  console.log('📋 Use these IDs in your registration:');
+  console.log('\n Seed completed successfully!');
+  console.log(' Use these IDs in your registration:');
   console.log('   Branch A: branch_a');
   console.log('   Branch B: branch_b');
 }
